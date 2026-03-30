@@ -1,10 +1,10 @@
 # PawPal+ Project Reflection
 
 ## 1. System Design
-
+Three tasks that a user should do is to be able to track pet care tasks, enter user and pet information, and view a daily produce a daily plan.
 **a. Initial design**
 
-- Briefly describe your initial UML design.
+- Briefly describe your initial UML d#coesign.
 - What classes did you include, and what responsibilities did you assign to each?
 
 **b. Design changes**
