@@ -1,68 +1,56 @@
 const mermaidDiagram = `
 classDiagram
     class Owner {
-        +int owner_id;
-        +string name;
-        +string email;
-        +string phone;
-        +List~Pet~ pets;
-        +create_pet(name, species, age);
-        +add_pet(pet);
-        +remove_pet(pet_id);
-        +get_pets();
-        +get_preferences();
+        +string name
+        +List~Pet~ pets
+        +add_pet(pet)
+        +remove_pet(pet)
+        +get_all_tasks()
     }
 
     class Pet {
-        +int pet_id;
-        +string name;
-        +string species;
-        +int age;
-        +string breed;
-        +string diet_info;
-        +List~Task~ tasks;
-        +add_task(task);
-        +remove_task(task_id);
-        +get_tasks();
-        +get_care_profile();
+        +string name
+        +string species
+        +List~Task~ tasks
+        +add_task(task)
+        +remove_task(task)
+        +get_pending_tasks()
     }
 
     class Task {
-        +int task_id;
-        +string title;
-        +string description;
-        +int duration_minutes;
-        +date due_date;
-        +string priority;
-        +string status;
-        +int pet_id;
-        +int owner_id;
-        +string location;
-        +set_status(status);
-        +is_overdue();
-        +estimated_endtime(start_time);
+        +string description
+        +bool is_complete
+        +time scheduled_time
+        +Frequency frequency
+        +string pet_name
+        +string owner_name
+        +int duration_minutes
+        +string priority
+        +date due_date
+        +mark_complete()
+        +reset()
+        +is_overdue(today)
     }
 
     class Scheduler {
-        +int scheduler_id;
-        +Owner owner;
-        +List~Task~ tasks;
-        +date schedule_date;
-        +List~ScheduledItem~ schedule;
-        +add_task(task);
-        +remove_task(task_id);
-        +load_owner_tasks(owner, date=None);
-        +generate_schedule(day_start, day_end, preferences);
-        +_score_task(task, preferences);
-        +_sort_tasks();
-        +export_schedule(format);
-        +explain_schedule();
+        +List~Owner~ owners
+        +add_owner(owner)
+        +get_tasks_by_frequency(frequency)
+        +get_tasks_for_pet(pet_name)
+        +get_tasks_by_status(is_complete)
+        +filter_tasks(pet_name, completed)
+        +sort_tasks_by_time(tasks)
+        +get_overdue_tasks()
+        +complete_task(task)
+        +detect_conflicts(tasks)
+        +construct_task_schedule(schedule_date, day_start, day_end, pet_name, include_completed)
     }
 
-    Owner "1" --> "*" Pet : owns;
-    Pet "1" --> "*" Task : has;
-    Scheduler "1" --> "1" Owner : schedules for;
-    Scheduler "1" --> "*" Task : arranges;
+    Owner "1" --> "*" Pet : owns
+    Pet "1" --> "*" Task : has
+    Scheduler "1" --> "*" Owner : manages
+    Scheduler "1" --> "*" Task : schedules
+
 `;
 
 export default mermaidDiagram;

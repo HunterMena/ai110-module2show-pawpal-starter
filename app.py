@@ -194,8 +194,9 @@ else:
     st.info("No scheduled tasks for selected date/window yet. Add tasks and click Generate schedule.")
 
 if state["conflicts"]:
-    st.error("Conflicts detected between tasks:")
-    for a, b in state["conflicts"]:
-        st.write(f"{a.description} ({a.scheduled_time}) conflicts with {b.description} ({b.scheduled_time})")
+    st.warning("Conflicts detected in your schedule. Resolve these tasks to avoid missed pet care events:")
+    for conflict_text in state["conflicts"]:
+        st.warning(conflict_text)
+    st.info("Try adjusting times or setting different priorities to avoid overlap.")
 
 

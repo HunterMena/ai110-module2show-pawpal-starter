@@ -22,6 +22,15 @@ Your final app should:
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
 
+## Features
+
+- Sorting by time (earliest first) via `Scheduler.sort_tasks_by_time`
+- Filtering by pet name and completion status via `Scheduler.filter_tasks`
+- Conflict warnings for same-time/overlapping tasks via `Scheduler.detect_conflicts`
+- Recurring task handling with `Scheduler.complete_task` + auto rollover for daily/weekly tasks
+- Schedule generation with window constraints via `Scheduler.construct_task_schedule`
+- Manual task management with `Pet.add_task` and `Owner.get_all_tasks`
+
 ## Smarter Scheduling
 
 PawPal+ now supports:
@@ -52,6 +61,10 @@ pip install -r requirements.txt
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
+
+## Demo 📸
+
+<a href="/course_images/ai110/Screenshot_2026-03-30_212146.png" target="_blank"><img src="/course_images/ai110/Screenshot_2026-03-30_212146.png" title="PawPal App" width="" alt="PawPal App" class="center-block" /></a>
 
 ## Testing PawPal+
 

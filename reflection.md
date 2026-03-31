@@ -35,13 +35,19 @@ lastly, added schedule generation flow and explanation helper.
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+- I used Copilot for design brainstorming to map out the Scheduler class responsibilities and to generate method stubs that fit the use cases. I used it for code generation when translating requirements into methods for sorting, filtering, conflict detection, and recurrence. I also used it for debugging and test generation, quickly verifying assumptions with pytest and adjusting logic.
+- Prompts that asked for focused functionality ('sort tasks by time', 'recurring task rollover', 'conflict warning') were most helpful.
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+- I rejected an early AI suggestion that tried to solve scheduling with a very complex global optimization candidate set (NP-hard), because this was overkill for the project scope. Instead, I kept a deterministic approach (greedy window scheduling, explicit conflict warnings) for clarity and faster implementation.
+- I verified by writing tests for each behavior and running `python -m pytest` frequently. When an AI-generated implementation didn't match expected output, I rewrote that path manually.
+
+**c. Copilot features**
+
+- Inline suggestions and code completions helped build methods quickly (e.g., generating `detect_conflicts` loops). The generated test scaffolding was valuable for fast feedback.
+- Using separate chat sessions for phases (design, implementation, testing) kept the work organized and reduced context-switching complexity.
+- Being the 'lead architect' meant accepting AI's best ideas when they matched project constraints, otherwise pruning them for simplicity and maintainability.
 
 ---
 
