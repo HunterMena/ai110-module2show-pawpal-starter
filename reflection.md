@@ -26,8 +26,8 @@ lastly, added schedule generation flow and explanation helper.
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+- The scheduler currently detects conflicts via exact time overlap in `Scheduler.detect_conflicts()` (same start or direct overlap in minutes), but it does not attempt full multi-segment interval packing or sliding window reassignments.
+- This is a deliberate tradeoff for readability and predictable behavior: it provides a lightweight warning mechanism without trying to solve NP-hard schedule optimization. A more aggressive strategy could improve utilization, but it would also require more complex algorithms and may reduce transparency for users.
 
 ---
 

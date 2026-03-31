@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 from enum import Enum
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 
 class Frequency(Enum):
     DAILY = "daily"
@@ -107,25 +107,168 @@ class Scheduler:
         """Get tasks filtered by a frequency value."""
         return [task for task in self._all_tasks() if task.frequency == frequency]
 
+    def get_tasks_for_pet(self, pet_name: str) -> List[Task]:
+        """Get tasks only for a specific pet."""
+        return [task for task in self._all_tasks() if task.pet_name == pet_name]
+
+    def get_tasks_by_status(self, is_complete: bool) -> List[Task]:
+        """Filter tasks by completion status."""
+        return [task for task in self._all_tasks() if task.completed == is_complete]
+
+    def filter_tasks(self, pet_name: Optional[str] = None, completed: Optional[bool] = None) -> List[Task]:
+        """Return tasks filtered by pet name and/or completion status."""
+        tasks = self._all_tasks()
+        if pet_name is not None:
+            tasks = [t for t in tasks if t.pet_name == pet_name]
+        if completed is not None:
+            tasks = [t for t in tasks if t.completed == completed]
+        return tasks
+
+    def sort_tasks_by_time(self, tasks: List[Task]) -> List[Task]:
+        """Sort tasks by scheduled_time (earliest first)."""
+        # Use `sorted(..., key=lambda t: t.scheduled_time)` with time objects
+        return sorted([t for t in tasks if t.scheduled_time is not None], key=lambda t: t.scheduled_time)
+
     def get_overdue_tasks(self) -> List[Task]:
         """Return all overdue tasks as of today."""
         today = date.today()
         return [task for task in self._all_tasks() if task.is_overdue(today)]
 
-    def complete_task(self, task: Task) -> None:
-        """Mark a task complete via scheduler action."""
+    def complete_task(self, task: Task) -> Optional[Task]:
+        """Mark a task complete and create next occurrence for recurring tasks."""
         task.mark_complete()
+        return self._create_next_occurrence(task)
 
-    def generate_daily_schedule(self, schedule_date: date, day_start: time, day_end: time) -> List[Task]:
-        """Generate a daily schedule of eligible tasks between start and end."""
-        candidates = [task for task in self._all_tasks() if not task.completed and not task.is_overdue(schedule_date)]
-        candidates.sort(key=lambda t: (t.priority == 'high', t.scheduled_time))
-        daily = [task for task in candidates if day_start <= task.scheduled_time <= day_end]
-        return daily
+    def _find_pet(self, pet_name: Optional[str]) -> Optional[Pet]:
+        """Find a registered pet by name across all owners."""
+        if not pet_name:
+            return None
+        for owner in self.owners:
+            for pet in owner.pets:
+                if pet.name == pet_name:
+                    return pet
+        return None
+
+    def _create_next_occurrence(self, task: Task) -> Optional[Task]:
+        """Create and append a new recurring task copy for the next date."""
+        if task.frequency is None or task.frequency == Frequency.MONTHLY and task.scheduled_time is None:
+            # non-recurring or no schedule; no auto-rolling task
+            return None
+
+        if task.frequency == Frequency.DAILY:
+            next_date = date.today() + timedelta(days=1)
+        elif task.frequency == Frequency.WEEKLY:
+            next_date = date.today() + timedelta(weeks=1)
+        elif task.frequency == Frequency.MONTHLY:
+            next_date = date.today() + timedelta(days=30)
+        else:
+            return None
+
+        new_task = Task(
+            description=task.description,
+            is_complete=False,
+            scheduled_time=task.scheduled_time,
+            frequency=task.frequency,
+            pet_name=task.pet_name,
+            owner_name=task.owner_name,
+            duration_minutes=task.duration_minutes,
+            priority=task.priority,
+            due_date=next_date,
+        )
+
+        pet = self._find_pet(task.pet_name)
+        if pet:
+            pet.add_task(new_task)
+
+        return new_task
+
+    def _priority_rank(self, priority: str) -> int:
+        """Lower number means higher urgency for sorting."""
+        ranking = {"high": 0, "medium": 1, "low": 2}
+        return ranking.get(priority, 1)
+
+    def detect_conflicts(self, tasks: List[Task]) -> List[str]:
+        """Detect task conflicts and return warning messages (lightweight, non-crashing)."""
+        warnings: List[str] = []
+        sorted_tasks = sorted([t for t in tasks if t.scheduled_time is not None], key=lambda t: t.scheduled_time)
+
+        for i in range(len(sorted_tasks) - 1):
+            current = sorted_tasks[i]
+            nxt = sorted_tasks[i + 1]
+            if current.scheduled_time is None or nxt.scheduled_time is None:
+                continue
+
+            current_start = datetime.combine(date.today(), current.scheduled_time)
+            current_end = current_start + timedelta(minutes=current.duration_minutes)
+            next_start = datetime.combine(date.today(), nxt.scheduled_time)
+            next_end = next_start + timedelta(minutes=nxt.duration_minutes)
+
+            overlap = next_start < current_end
+            same_time = current_start == next_start
+
+            if overlap or same_time:
+                pet_descr = "same pet" if current.pet_name == nxt.pet_name else "different pets"
+                warning = (
+                    f"Conflict: '{current.description}' ({current.pet_name}) at {current.scheduled_time.strftime('%H:%M')} "
+                    f"and '{nxt.description}' ({nxt.pet_name}) at {nxt.scheduled_time.strftime('%H:%M')} - {pet_descr}."
+                )
+                warnings.append(warning)
+
+        return warnings
+
+    def _rollover_recurring_tasks(self, schedule_date: date) -> None:
+        """Create next occurrence for completed recurring tasks and reset them."""
+        for task in self._all_tasks():
+            if task.frequency and task.completed:
+                if task.frequency == Frequency.DAILY:
+                    next_due = schedule_date + timedelta(days=1)
+                elif task.frequency == Frequency.WEEKLY:
+                    next_due = schedule_date + timedelta(weeks=1)
+                elif task.frequency == Frequency.MONTHLY:
+                    # rough monthly increment (~30 days)
+                    next_due = schedule_date + timedelta(days=30)
+                else:
+                    continue
+
+                task.due_date = next_due
+                task.reset()
+
+    def construct_task_schedule(
+        self,
+        schedule_date: date,
+        day_start: time,
+        day_end: time,
+        pet_name: Optional[str] = None,
+        include_completed: bool = False,
+    ) -> List[Task]:
+        """Return a schedule of tasks for the selected day and optional pet."""
+        self._rollover_recurring_tasks(schedule_date)
+
+        tasks = self._all_tasks()
+        if pet_name:
+            tasks = [t for t in tasks if t.pet_name == pet_name]
+
+        if not include_completed:
+            tasks = [t for t in tasks if not t.completed]
+
+        time_candidates = [t for t in tasks if t.scheduled_time is not None]
+        time_candidates.sort(key=lambda t: (t.scheduled_time, self._priority_rank(t.priority)))
+
+        selected = []
+        current_end = datetime.combine(schedule_date, day_start)
+        for task in time_candidates:
+            task_start = datetime.combine(schedule_date, task.scheduled_time)
+            task_end = task_start + timedelta(minutes=task.duration_minutes)
+            if day_start <= task.scheduled_time <= day_end and task_start >= current_end:
+                selected.append(task)
+                current_end = task_end
+
+        return selected
 
     def explain_schedule(self, tasks: List[Task]) -> str:
         """Return a textual explanation of a list of scheduled tasks."""
         lines = []
         for task in tasks:
-            lines.append(f"{task.owner_name}/{task.pet_name}: {task.description} at {task.scheduled_time} ({task.priority})")
+            scheduled = task.scheduled_time.strftime("%H:%M") if task.scheduled_time else "unscheduled"
+            lines.append(f"{task.owner_name}/{task.pet_name}: {task.description} at {scheduled} ({task.priority})")
         return "\n".join(lines)

@@ -22,6 +22,17 @@ Your final app should:
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
 
+## Smarter Scheduling
+
+PawPal+ now supports:
+
+- `Scheduler.sort_tasks_by_time(tasks)` to order tasks by `scheduled_time`.
+- `Scheduler.filter_tasks(pet_name, completed)` to quickly filter by specific pet or completion status.
+- `Scheduler.detect_conflicts(tasks)` for lightweight overlap detection, producing warnings instead of crashes.
+- Recurring task rollover in `Scheduler.complete_task(task)` to auto-create the next daily/weekly task instance.
+
+These improvements make schedule results predictable, testable, and easier for users to reason about.
+
 ## Getting started
 
 ### Setup
